@@ -15,6 +15,8 @@
 
 ## Installation
 
+<s>
+
 Prebuilt binaries are released for Linux and MacOS.
 
 - You can download and unpack the
@@ -26,7 +28,9 @@ Prebuilt binaries are released for Linux and MacOS.
   cargo binstall fontain
   ```
 
-- From source with Cargo
+</s>
+
+- From source
 
   ```sh
   cargo install fontain
