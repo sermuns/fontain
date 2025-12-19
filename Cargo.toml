@@ -2,6 +2,7 @@
 name = "fontain"
 version = "0.1.0"
 edition = "2024"
+license = "WTFPL"
 repository = "https://github.com/sermuns/fontain"
 
 [dependencies]
