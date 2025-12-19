@@ -8,6 +8,7 @@
   <a href="https://github.com/sermuns/fontain/blob/main/LICENSE">
     <img alt="WTFPL" src="https://img.shields.io/badge/License-WTFPL-brightgreen.svg"></a>
   <a href="https://crates.io/crates/fontain"><img src="https://img.shields.io/crates/v/fontain.svg" alt="Version info"></a>
+  <img alt="NO AI" src="https://raw.githubusercontent.com/nuxy/no-ai-badge/master/badge.svg" >
 </div>
 <br>
 
