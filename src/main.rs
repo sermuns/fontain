@@ -4,7 +4,7 @@ use clap::Parser;
 use color_eyre::eyre::{Context, ContextCompat, Result, eyre};
 use either::Either;
 use indicatif::ProgressBar;
-use isahc::{AsyncReadResponseExt, ReadResponseExt, ResponseExt, http::StatusCode};
+use isahc::{AsyncReadResponseExt, ReadResponseExt, ResponseExt};
 use serde::Deserialize;
 use std::{
     fs::File,
@@ -12,12 +12,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use zip::ZipArchive;
-
-#[derive(Debug, Deserialize)]
-struct GoogleFontFile {
-    filename: PathBuf,
-    contents: String,
-}
 
 #[derive(Debug, Deserialize)]
 struct GoogleFontFileRef {
@@ -28,13 +22,13 @@ struct GoogleFontFileRef {
 
 #[derive(Debug, Deserialize)]
 struct Manifest {
-    files: Vec<GoogleFontFile>,
+    // files: Vec<GoogleFontFile>,
     fileRefs: Vec<GoogleFontFileRef>,
 }
 
 #[derive(Debug, Deserialize)]
 struct List {
-    zipName: PathBuf,
+    // zipName: PathBuf,
     manifest: Manifest,
 }
 
