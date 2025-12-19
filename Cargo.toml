@@ -2,6 +2,7 @@
 name = "fontain"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/sermuns/fontain"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
