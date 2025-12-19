@@ -3,6 +3,8 @@
 use clap::Parser;
 use color_eyre::eyre::{Context, ContextCompat, Result, eyre};
 use either::Either;
+use indicatif::ProgressBar;
+use isahc::{AsyncReadResponseExt, ReadResponseExt, ResponseExt, http::StatusCode};
 use serde::Deserialize;
 use std::{
     fs::File,
@@ -11,27 +13,27 @@ use std::{
 };
 use zip::ZipArchive;
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct GoogleFontFile {
     filename: PathBuf,
     contents: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct GoogleFontFileRef {
     filename: PathBuf,
     url: String,
     // don't care about date
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 struct Manifest {
     files: Vec<GoogleFontFile>,
     fileRefs: Vec<GoogleFontFileRef>,
 }
 
-#[derive(Deserialize)]
-struct ListResponse {
+#[derive(Debug, Deserialize)]
+struct List {
     zipName: PathBuf,
     manifest: Manifest,
 }
@@ -50,24 +52,54 @@ struct Args {
     only_user: bool,
 }
 
-fn get_google_font(url: &str, extract_root_dir: &Path) -> Result<()> {
+fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
     use futures_concurrency::prelude::*;
 
-    let client = reqwest::Client::new();
+    println!("detected '{}' as a Google Fonts URL!", &specimen_url);
+
+    let font_name = specimen_url
+        .split("/")
+        .last()
+        .context("failed resolving font name from URL")?;
 
     smol::block_on(async {
-        let list_response: ListResponse = client.get(url).send().await?.json().await?;
+        let list_url = format!(
+            "https://fonts.google.com/download/list?family={}",
+            font_name
+        );
+        let mut list_response = isahc::get_async(list_url).await?;
+        if !list_response.status().is_success() {
+            return Err(eyre!("bad request, got {}", list_response.status()));
+        }
 
-        list_response
-            .manifest
+        println!("downloading font '{}'...", font_name);
+
+        let list_response_text = list_response
+            .text()
+            .await?
+            .split_once("\n")
+            .unwrap()
+            .1
+            .to_string();
+
+        let list: List = serde_json::from_str(&list_response_text).unwrap();
+
+        let progress_bar = ProgressBar::new(list.manifest.fileRefs.len() as u64);
+
+        list.manifest
             .fileRefs
             .into_co_stream()
             .try_for_each(async |fileref| -> Result<()> {
-                let contents = client.get(fileref.url).send().await?.bytes().await?;
-                smol::fs::write(extract_root_dir.join(fileref.filename), contents).await?;
+                let contents = isahc::get_async(fileref.url).await?.bytes().await?;
+                let path = extract_root_dir.join(font_name).join(fileref.filename);
+                smol::fs::create_dir_all(path.parent().unwrap()).await?;
+                smol::fs::write(path, contents).await?;
+                progress_bar.inc(1);
                 Ok(())
             })
-            .await
+            .await?;
+        println!("successfully downloaded and installed '{}'!", font_name);
+        Ok(())
     })
 }
 
@@ -95,14 +127,22 @@ fn main() -> Result<()> {
         ));
     };
 
-    if args.font_location.starts_with("https://fonts.google.com") {
+    if args
+        .font_location
+        .starts_with("https://fonts.google.com/specimen/")
+    {
         return get_google_font(&args.font_location, &extract_root_dir);
     }
 
     let (font_name, font_reader): (String, _) = if args.font_location.starts_with("http") {
-        let response = reqwest::blocking::get(&args.font_location)
-            .context("unable to download font archive")?;
-        let name = response.url().to_string().replace("/", "-");
+        let mut response =
+            isahc::get(&args.font_location).context("unable to download font archive")?;
+        let name = if let Some(uri) = response.effective_uri() {
+            uri.to_string()
+        } else {
+            args.font_location.to_string()
+        }
+        .replace("/", "-");
         let reader = Either::Left(Cursor::new(response.bytes()?));
         (name, reader)
     } else {
@@ -125,7 +165,7 @@ fn main() -> Result<()> {
         .extract(&extract_directory)
         .context("failed extracting to font directory")?;
 
-    println!("Fonts installed to {:?}", extract_directory);
+    println!("fonts installed to {:?}!", extract_directory);
 
     Ok(())
 }

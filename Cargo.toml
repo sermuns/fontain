@@ -9,7 +9,8 @@ color-eyre = "0.6.5"
 dirs = "6.0.0"
 either = "1.15.0"
 futures-concurrency = "7.6.3"
-reqwest = { version = "0.12.26", features = ["blocking", "json"] }
+indicatif = "0.18.3"
+isahc = { version = "1.7.2", features = ["json"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 smol = "2.0.2"
