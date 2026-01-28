@@ -2,6 +2,16 @@
 
 ## [unreleased]
 
+## [0.1.2](https://github.com/sermuns/fontain/compare/v0.1.1...v0.1.2) - 2026-01-28
+
+### Other
+
+- add release-plz
+- minor cleanups and progressbar style changes
+- add changelog
+- add no AI badge
+- remove strikethrough from readme
+
 ### 📚 Documentation
 
 - remove strikethrough from readme by Samuel Åkesson in [be1e84e](https://github.com/sermuns/stil/commit/be1e84e7de7c050a5d2cab8b23abb9b74ed7edc4)
