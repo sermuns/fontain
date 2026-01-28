@@ -1,0 +1,18 @@
+name: vhs
+on:
+  push:
+    paths:
+      - media/demo.tape
+jobs:
+  vhs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: charmbracelet/vhs-action@v1
+        with:
+          path: media/demo.tape
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: Update generated VHS GIF
