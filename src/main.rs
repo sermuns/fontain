@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 use clap::Parser;
-use color_eyre::eyre::{Context, ContextCompat, Result, eyre};
+use color_eyre::eyre::{Context, ContextCompat, Result, bail, eyre};
 use either::Either;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use isahc::{AsyncReadResponseExt, ReadResponseExt, ResponseExt};
 use serde::Deserialize;
 use std::{
@@ -48,8 +48,7 @@ struct Args {
 
 fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
     use futures_concurrency::prelude::*;
-
-    println!("detected '{}' as a Google Fonts URL!", &specimen_url);
+    println!("Detected '{}' as a Google Fonts URL.", &specimen_url);
 
     let font_name = specimen_url
         .split("/")
@@ -66,8 +65,6 @@ fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
             return Err(eyre!("bad request, got {}", list_response.status()));
         }
 
-        println!("downloading font '{}'...", font_name);
-
         let list_response_text = list_response
             .text()
             .await?
@@ -78,21 +75,29 @@ fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
 
         let list: List = serde_json::from_str(&list_response_text).unwrap();
 
-        let progress_bar = ProgressBar::new(list.manifest.fileRefs.len() as u64);
+        let pb = ProgressBar::new(list.manifest.fileRefs.len() as u64).with_style(
+            ProgressStyle::with_template("{msg} [{elapsed}] [{wide_bar}] {pos}/{len} ({eta})")?,
+        );
 
         list.manifest
             .fileRefs
             .into_co_stream()
             .try_for_each(async |fileref| -> Result<()> {
                 let contents = isahc::get_async(fileref.url).await?.bytes().await?;
+                pb.set_message(fileref.filename.display().to_string());
                 let path = extract_root_dir.join(font_name).join(fileref.filename);
                 smol::fs::create_dir_all(path.parent().unwrap()).await?;
                 smol::fs::write(path, contents).await?;
-                progress_bar.inc(1);
+                pb.inc(1);
                 Ok(())
             })
             .await?;
-        println!("successfully downloaded and installed '{}'!", font_name);
+
+        println!(
+            "Successfully downloaded and installed '{}' to `{}`!",
+            font_name,
+            extract_root_dir.display()
+        );
         Ok(())
     })
 }
@@ -104,9 +109,7 @@ fn has_write_permissions(path: impl AsRef<Path>) -> bool {
 fn main() -> Result<()> {
     let args = Args::parse();
     if args.only_user && args.only_system {
-        return Err(eyre!(
-            "at most one of --only-user and --only-system can be given"
-        ));
+        bail!("at most one of --only-user and --only-system can be given");
     }
 
     const SYSTEM_FONT_DIR: &str = "/usr/share/fonts";
@@ -116,9 +119,9 @@ fn main() -> Result<()> {
     } else if !args.only_system {
         dirs::font_dir().context("unable to determine user font dir")?
     } else {
-        return Err(eyre!(
+        bail!(
             "no suitable font installation directory found; try running without --only-system or --only-user"
-        ));
+        );
     };
 
     if args
@@ -128,7 +131,7 @@ fn main() -> Result<()> {
         return get_google_font(&args.font_location, &extract_root_dir);
     }
 
-    let (font_name, font_reader): (String, _) = if args.font_location.starts_with("http") {
+    let (font_name, font_reader) = if args.font_location.starts_with("http") {
         let mut response =
             isahc::get(&args.font_location).context("unable to download font archive")?;
         let name = if let Some(uri) = response.effective_uri() {
@@ -151,6 +154,7 @@ fn main() -> Result<()> {
         );
         (name, reader)
     };
+
     let mut archive = ZipArchive::new(font_reader)?;
 
     let extract_directory = extract_root_dir.join(font_name);
