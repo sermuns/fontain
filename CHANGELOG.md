@@ -2,6 +2,12 @@
 
 ## [unreleased]
 
+## [0.1.3](https://github.com/sermuns/fontain/compare/v0.1.2...v0.1.3) - 2026-01-28
+
+### Other
+
+- add vhs tape
+
 ## [0.1.2](https://github.com/sermuns/fontain/compare/v0.1.1...v0.1.2) - 2026-01-28
 
 ### Other
