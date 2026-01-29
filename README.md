@@ -14,6 +14,8 @@
 
 `fontain` is a command-line tool to install fonts. It can both unpack local archives containing fonts and download fonts from the web (including from Google Fonts).
 
+![demo](media/demo.gif)
+
 ## Installation
 
 Prebuilt binaries are released for Linux and MacOS.
