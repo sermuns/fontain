@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 
 use clap::Parser;
-use color_eyre::eyre::{Context, ContextCompat, Result, bail, eyre};
+use color_eyre::eyre::{Context, ContextCompat, OptionExt, Result, bail, eyre};
 use either::Either;
 use indicatif::{ProgressBar, ProgressStyle};
 use isahc::{AsyncReadResponseExt, ReadResponseExt, ResponseExt};
@@ -9,6 +9,7 @@ use serde::Deserialize;
 use std::{
     fs::File,
     io::Cursor,
+    num::NonZeroUsize,
     path::{Path, PathBuf},
 };
 use zip::ZipArchive;
@@ -65,15 +66,11 @@ fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
             return Err(eyre!("bad request, got {}", list_response.status()));
         }
 
-        let list_response_text = list_response
-            .text()
-            .await?
-            .split_once("\n")
-            .unwrap()
-            .1
-            .to_string();
-
-        let list: List = serde_json::from_str(&list_response_text).unwrap();
+        let text = list_response.text().await?;
+        let (_, json) = text
+            .split_once('\n')
+            .ok_or_else(|| eyre!("unexpected Google Fonts list format"))?;
+        let list: List = serde_json::from_str(json)?;
 
         let pb = ProgressBar::new(list.manifest.fileRefs.len() as u64).with_style(
             ProgressStyle::with_template("{msg} [{elapsed}] [{wide_bar}] {pos}/{len} ({eta})")?,
@@ -82,12 +79,18 @@ fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
         list.manifest
             .fileRefs
             .into_co_stream()
+            .limit(NonZeroUsize::new(8))
             .try_for_each(async |fileref| -> Result<()> {
-                let contents = isahc::get_async(fileref.url).await?.bytes().await?;
                 pb.set_message(fileref.filename.display().to_string());
-                let path = extract_root_dir.join(font_name).join(fileref.filename);
-                smol::fs::create_dir_all(path.parent().unwrap()).await?;
-                smol::fs::write(path, contents).await?;
+                let path = extract_root_dir.join(font_name).join(&fileref.filename);
+
+                let mut contents = isahc::get_async(fileref.url).await?.into_body();
+
+                smol::fs::create_dir_all(path.parent().ok_or_eyre("invalid file path")?).await?;
+                let mut file = smol::fs::File::create(&path).await?;
+
+                smol::io::copy(&mut contents, &mut file).await?;
+
                 pb.inc(1);
                 Ok(())
             })
