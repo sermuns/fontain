@@ -84,12 +84,12 @@ fn get_google_font(specimen_url: &str, extract_root_dir: &Path) -> Result<()> {
                 pb.set_message(fileref.filename.display().to_string());
                 let path = extract_root_dir.join(font_name).join(&fileref.filename);
 
-                let mut contents = isahc::get_async(fileref.url).await?.into_body();
+                let contents = isahc::get_async(fileref.url).await?.into_body();
 
                 smol::fs::create_dir_all(path.parent().ok_or_eyre("invalid file path")?).await?;
-                let mut file = smol::fs::File::create(&path).await?;
+                let file = smol::fs::File::create(&path).await?;
 
-                smol::io::copy(&mut contents, &mut file).await?;
+                smol::io::copy(contents, file).await?;
 
                 pb.inc(1);
                 Ok(())
