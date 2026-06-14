@@ -6,6 +6,9 @@ license = "WTFPL"
 repository = "https://github.com/sermuns/fontain"
 description = "cli font installer/downloader"
 
+[package.metadata.cargo-machete]
+ignored = ["openssl"]
+
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 color-eyre = "0.6"
