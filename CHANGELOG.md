@@ -2,6 +2,34 @@
 
 ## [unreleased]
 
+## [0.1.3](https://github.com/sermuns/fontain/compare/v0.1.2...v0.1.3) - 2026-06-14
+
+### Added
+
+- use rustls
+
+### Fixed
+
+- *(ci)* remove bogus step
+
+### Other
+
+- *(deps)* use less features of isahc
+- *(deps)* bump actions/download-artifact from 4 to 8 ([#7](https://github.com/sermuns/fontain/pull/7))
+- *(deps)* bump actions/cache from 4 to 5 ([#8](https://github.com/sermuns/fontain/pull/8))
+- *(deps)* bump softprops/action-gh-release from 2 to 3 ([#9](https://github.com/sermuns/fontain/pull/9))
+- *(deps)* bump actions/upload-pages-artifact from 3 to 5 ([#11](https://github.com/sermuns/fontain/pull/11))
+- *(deps)* bump actions/checkout from 4 to 6 ([#10](https://github.com/sermuns/fontain/pull/10))
+- ignore openssl during cargo-machete
+- relax and update dependencies
+- add CI
+- add dependabot
+- own the variables
+- various changes. limit concurrency, alloc less
+- include vhs demo in README
+- use git-lfs for some media
+- add vhs tape
+
 ## [0.1.2](https://github.com/sermuns/fontain/compare/v0.1.1...v0.1.2) - 2026-01-28
 
 ### Other
